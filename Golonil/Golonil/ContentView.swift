@@ -7,7 +7,7 @@ struct ContentView: View {
         NavigationView {
             ZStack {
                 VStack(spacing: -70) {
-                    Text("Goalonil")
+                    Text("Golonil")
                         .font(.largeTitle)
                         .fontWeight(.bold)
                         .foregroundColor(.black)

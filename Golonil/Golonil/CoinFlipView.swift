@@ -9,6 +9,15 @@ struct CoinFlipView: View {
     @State private var flippedTeam: String? = nil
     @State private var isFlipping = false
     @State private var rotationDegrees = 0.0
+    
+    // Helper computed properties to determine which team has which color
+    private var redTeamName: String {
+        return team1Color == Color(hex: "#FF2F2F") ? team1Name : team2Name
+    }
+    
+    private var blueTeamName: String {
+        return team1Color == Color(hex: "#004AFF") ? team1Name : team2Name
+    }
 
     var body: some View {
         ZStack {
@@ -36,22 +45,24 @@ struct CoinFlipView: View {
                 // 📝 Instruction or Result
                 if let team = flippedTeam {
                     Text("Team \(team)")
-                        .font(.system(size: 32, weight: .bold))
+                        .font(.custom("Kefa", size: 32))
+                        .fontWeight(.bold)
                         .foregroundColor(team == team1Name ? team1Color : team2Color)
                         .multilineTextAlignment(.center)
 
                     Text("will start the Game.")
-                        .font(.title2)
-                        .fontWeight(.semibold)
+                        .font(.custom("Kefa", size: 20))
+                        .fontWeight(.bold)
                         .foregroundColor(.black)
                 } else {
                     VStack(spacing: 10) {
                         Text("Flip the Coin")
-                            .font(.system(size: 32, weight: .bold))
+                            .font(.custom("Kefa", size: 32))
+                            .fontWeight(.bold)
                             .foregroundColor(.black)
 
                         Text("Tap on the Coin to see which team\nis starting the game.")
-                            .font(.title3)
+                            .font(.custom("Kefa", size: 20))
                             .multilineTextAlignment(.center)
                             .foregroundColor(.black)
                     }
@@ -59,8 +70,8 @@ struct CoinFlipView: View {
 
                 Spacer()
 
-                // 🪙 Coin Image with Flip Animation
-                Image(flippedTeam == nil ? "coin-red" : (flippedTeam == team1Name ? "coin-red" : "coin-blue"))
+                // 🪙 Coin Image with Flip Animation - FIXED: Now uses the correct logic
+                Image(flippedTeam == nil ? "coin-red" : (flippedTeam == redTeamName ? "coin-red" : "coin-blue"))
                     .resizable()
                     .frame(width: 180, height: 180)
                     .rotation3DEffect(
