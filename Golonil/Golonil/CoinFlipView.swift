@@ -6,9 +6,15 @@ struct CoinFlipView: View {
     var team1Color: Color
     var team2Color: Color
 
+    @Environment(\.dismiss) var dismiss
     @State private var flippedTeam: String? = nil
     @State private var isFlipping = false
     @State private var rotationDegrees = 0.0
+    @State private var showCardSelection = false
+    
+    // Add these state variables for team cards
+    @State private var team1Cards: [String] = []
+    @State private var team2Cards: [String] = []
     
     // Helper computed properties to determine which team has which color
     private var redTeamName: String {
@@ -26,6 +32,7 @@ struct CoinFlipView: View {
                 .ignoresSafeArea()
 
             VStack(spacing: 20) {
+                // Header with pause button only
                 HStack {
                     Button(action: {
                         // Pause action
@@ -70,8 +77,8 @@ struct CoinFlipView: View {
 
                 Spacer()
 
-                // 🪙 Coin Image with Flip Animation - FIXED: Now uses the correct logic
-                Image(flippedTeam == nil ? "coin-red" : (flippedTeam == redTeamName ? "coin-red" : "coin-blue"))
+                // 🪙 Coin Image with Flip Animation
+                Image(flippedTeam == nil ? "coin" : (flippedTeam == redTeamName ? "coin-red" : "coin-blue"))
                     .resizable()
                     .frame(width: 180, height: 180)
                     .rotation3DEffect(
@@ -84,20 +91,29 @@ struct CoinFlipView: View {
 
                 Spacer()
 
-                // ⏭ Next Button (after flip)
+                // Continue Button (after flip)
                 if flippedTeam != nil {
-                    Button(action: {
-                        // Handle continue
-                    }) {
-                        Image("next-button") // Your custom-styled image
-                            .resizable()
-                            .frame(width: 120, height: 40)
+                    Button("Continue") {
+                        showCardSelection = true
                     }
+                    .buttonStyle(ImageButtonStyle(imageName: "button-basic"))
+                    .padding(.bottom, 30)
                 }
 
                 Spacer()
             }
             .padding()
+        }
+        .fullScreenCover(isPresented: $showCardSelection) {
+            CardSelectionView(
+                team1Name: team1Name,
+                team2Name: team2Name,
+                team1Color: team1Color,
+                team2Color: team2Color,
+                startingTeam: flippedTeam ?? team1Name,
+                team1Cards: $team1Cards,
+                team2Cards: $team2Cards
+            )
         }
     }
 
