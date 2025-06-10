@@ -25,8 +25,8 @@ struct CardSelectionView: View {
     
     // Your 9 card images and descriptions - replace these with your actual image names and descriptions
     private let cardImageNames = [
-        "card1", "card2", "card2", "card3", "card3",
-        "card4", "card4", "card5", "card5"
+        "card1", "card2", "card3", "card4", "card5",
+        "card6", "card7", "card8", "card9"
     ]
     
     // Card descriptions - you'll provide these
@@ -138,7 +138,7 @@ struct CardSelectionView: View {
                                         axis: (x: 0, y: 1, z: 0)
                                     )
                                     .scaleEffect(scale)
-                                    .opacity(animatingCard == index ? 0.1 : 1.0) // Make original card nearly invisible during animation
+                                    .opacity(animatingCard == index ? 0.2 : 1.0) // Slightly less transparent during animation
                                 }
                                 .frame(width: 150, height: 220)
                             }
@@ -175,109 +175,241 @@ struct CardSelectionView: View {
                 
                 // Continue button (appears when 5 cards are selected)
                 if selectedCards.count == maxSelections {
-                    Button(isFirstTeamDone ? "Start Game!" : "Continue to Next Team") {
+                    Button(action: {
                         handleContinue()
+                    }) {
+                        Image(isFirstTeamDone ? "startButton" : "continueButton")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 200, height: 80) // adjust width/height to match your design
                     }
-                    .buttonStyle(ImageButtonStyle(imageName: "button-basic"))
                     .padding(.bottom, 20)
                     .transition(.scale.combined(with: .opacity))
                     .animation(.easeInOut(duration: 0.3), value: selectedCards.count == maxSelections)
                 }
+
             }
             
             // Full-screen overlay for card detail view
             if let detailIndex = showingCardDetail {
                 GeometryReader { geometry in
                     ZStack {
-                        // Semi-transparent background
+                        // Subtle background with larger tap area
                         Color.black.opacity(0.5)
                             .ignoresSafeArea()
                             .onTapGesture {
-                                // Optional: dismiss on background tap
+                                // Continue to next card when tapping anywhere on background
+                                continueToNextCard(currentIndex: detailIndex)
                             }
                         
-                        VStack(spacing: 20) {
-                            // Card display
-                            ZStack {
-                                // Front of card (image)
-                                if !showingCardDescription {
-                                    Image(shuffledCardImages.indices.contains(detailIndex) ? shuffledCardImages[detailIndex] : "card-template")
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fit)
-                                        .frame(width: 180, height: 270)
-                                        .cornerRadius(16)
-                                        .shadow(color: .black.opacity(0.6), radius: 15, x: 0, y: 8)
-                                }
-                                
-                                // Back of card (description)
-                                if showingCardDescription {
-                                    ZStack {
-                                        RoundedRectangle(cornerRadius: 16)
-                                            .fill(Color.white)
-                                            .frame(width: 180, height: 270)
-                                            .shadow(color: .black.opacity(0.6), radius: 15, x: 0, y: 8)
-                                        
-                                        VStack(spacing: 10) {
-                                            Text("Card Details")
-                                                .font(.custom("Kefa", size: 18))
-                                                .fontWeight(.bold)
-                                                .foregroundColor(.black)
-                                            
-                                            ScrollView {
-                                                Text(cardDescriptions.indices.contains(detailIndex) ? cardDescriptions[detailIndex] : "No description available")
-                                                    .font(.custom("Kefa", size: 14))
-                                                    .foregroundColor(.black)
-                                                    .multilineTextAlignment(.center)
-                                                    .padding()
-                                            }
-                                        }
-                                        .frame(width: 160, height: 250)
+                        VStack(spacing: 15) {
+                            // Close button
+                            HStack {
+                                Spacer()
+                                Button(action: {
+                                    withAnimation(.easeInOut(duration: 0.25)) {
+                                        showingCardDetail = nil
+                                        showingCardDescription = false
                                     }
+                                }) {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .font(.title2)
+                                        .foregroundColor(.white)
+                                        .background(Color.black.opacity(0.3))
+                                        .clipShape(Circle())
                                 }
                             }
-                            .rotation3DEffect(
-                                .degrees(showingCardDescription ? 180 : 0),
-                                axis: (x: 0, y: 1, z: 0)
-                            )
-                            .animation(.easeInOut(duration: 0.8), value: showingCardDescription)
+                            .padding(.horizontal, 30)
+                            .padding(.top, 20)
                             
-                            // Action buttons
-                            HStack(spacing: 20) {
-                                // Learn About Card button
+                            // Card display container
+                            VStack(spacing: 15) {
+                                ZStack {
+                                    // Front of card (image)
+                                    if !showingCardDescription {
+                                        VStack(spacing: 15) {
+                                            // Card image with enhanced styling
+                                            ZStack {
+                                                // Glow effect background
+                                                RoundedRectangle(cornerRadius: 20)
+                                                    .fill(
+                                                        LinearGradient(
+                                                            colors: [
+                                                                (currentTeam == team1Name ? team1Color : team2Color).opacity(0.3),
+                                                                (currentTeam == team1Name ? team1Color : team2Color).opacity(0.1)
+                                                            ],
+                                                            startPoint: .topLeading,
+                                                            endPoint: .bottomTrailing
+                                                        )
+                                                    )
+                                                    .frame(width: 220, height: 320)
+                                                    .blur(radius: 10)
+                                                
+                                                // Main card
+                                                Image(shuffledCardImages.indices.contains(detailIndex) ? shuffledCardImages[detailIndex] : "card-template")
+                                                    .resizable()
+                                                    .aspectRatio(contentMode: .fit)
+                                                    .frame(width: 200, height: 300)
+                                                    .cornerRadius(20)
+                                                    .shadow(color: .black.opacity(0.8), radius: 20, x: 0, y: 10)
+                                                    .overlay(
+                                                        RoundedRectangle(cornerRadius: 20)
+                                                            .stroke(
+                                                                LinearGradient(
+                                                                    colors: [Color.white.opacity(0.3), Color.clear],
+                                                                    startPoint: .topLeading,
+                                                                    endPoint: .bottomTrailing
+                                                                ),
+                                                                lineWidth: 2
+                                                            )
+                                                    )
+                                            }
+                                            
+                                            // Card title
+                                            Text("Power Card #\(detailIndex + 1)")
+                                                .font(.custom("Kefa", size: 24))
+                                                .fontWeight(.bold)
+                                                .foregroundColor(.white)
+                                                .shadow(color: .black.opacity(0.5), radius: 2, x: 0, y: 1)
+                                        }
+                                    }
+                                    
+                                    // Back of card (description)
+                                    if showingCardDescription {
+                                        VStack(spacing: 20) {
+                                            // Description card with glassmorphism effect
+                                            ZStack {
+                                                // Background with blur
+                                                RoundedRectangle(cornerRadius: 25)
+                                                    .fill(.ultraThinMaterial)
+                                                    .background(
+                                                        RoundedRectangle(cornerRadius: 25)
+                                                            .fill(
+                                                                LinearGradient(
+                                                                    colors: [
+                                                                        Color.white.opacity(0.2),
+                                                                        Color.white.opacity(0.1)
+                                                                    ],
+                                                                    startPoint: .topLeading,
+                                                                    endPoint: .bottomTrailing
+                                                                )
+                                                            )
+                                                    )
+                                                    .frame(width: 280, height: 350)
+                                                    .shadow(color: .black.opacity(0.3), radius: 20, x: 0, y: 10)
+                                                    .overlay(
+                                                        RoundedRectangle(cornerRadius: 25)
+                                                            .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                                                    )
+                                                
+                                                VStack(spacing: 20) {
+                                                    // Icon and title
+                                                    VStack(spacing: 10) {
+                                                        Image(systemName: "info.circle.fill")
+                                                            .font(.system(size: 30))
+                                                            .foregroundColor(currentTeam == team1Name ? team1Color : team2Color)
+                                                        
+                                                        Text("Card Details")
+                                                            .font(.custom("Kefa", size: 22))
+                                                            .fontWeight(.bold)
+                                                            .foregroundColor(.white)
+                                                    }
+                                                    
+                                                    // Divider
+                                                    Rectangle()
+                                                        .fill(Color.white.opacity(0.3))
+                                                        .frame(width: 100, height: 1)
+                                                    
+                                                    // Description text
+                                                    ScrollView {
+                                                        Text(cardDescriptions.indices.contains(detailIndex) ? cardDescriptions[detailIndex] : "No description available")
+                                                            .font(.custom("Kefa", size: 16))
+                                                            .foregroundColor(.white)
+                                                            .multilineTextAlignment(.center)
+                                                            .lineSpacing(4)
+                                                            .padding(.horizontal, 20)
+                                                    }
+                                                    .frame(maxHeight: 200)
+                                                }
+                                                .frame(width: 260, height: 330)
+                                            }
+                                        }
+                                    }
+                                }
+                                .animation(.easeInOut(duration: 0.3), value: showingCardDescription)
+                            }
+                            
+                            // Enhanced action buttons with larger tap areas
+                            HStack(spacing: 25) {
+                                // Card Info/Show Card button with larger tap area
                                 Button(action: {
-                                    withAnimation(.easeInOut(duration: 0.8)) {
+                                    withAnimation(.easeInOut(duration: 0.3)) {
                                         showingCardDescription.toggle()
                                     }
                                 }) {
-                                    Text(showingCardDescription ? "Show Card" : "Learn About Card")
-                                        .font(.custom("Kefa", size: 16))
-                                        .fontWeight(.semibold)
-                                        .foregroundColor(.white)
-                                        .padding(.horizontal, 20)
-                                        .padding(.vertical, 12)
-                                        .background(Color.blue)
-                                        .cornerRadius(25)
+                                    HStack(spacing: 10) {
+                                        Image(systemName: showingCardDescription ? "photo" : "info.circle")
+                                            .font(.system(size: 18, weight: .semibold))
+                                        Text(showingCardDescription ? "Show Card" : "Card Info")
+                                            .font(.custom("Kefa", size: 16))
+                                            .fontWeight(.semibold)
+                                    }
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 25)
+                                    .padding(.vertical, 15)
+                                    .background(
+                                        LinearGradient(
+                                            colors: [Color.blue, Color.blue.opacity(0.8)],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    .cornerRadius(25)
+                                    .shadow(color: Color.blue.opacity(0.4), radius: 10, x: 0, y: 5)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 25)
+                                            .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                                    )
                                 }
+                                .scaleEffect(showingCardDescription ? 0.95 : 1.0)
+                                .animation(.easeInOut(duration: 0.1), value: showingCardDescription)
                                 
-                                // Continue button
+                                // Next Card button
                                 Button(action: {
                                     continueToNextCard(currentIndex: detailIndex)
                                 }) {
-                                    Text("Continue to Next Card")
-                                        .font(.custom("Kefa", size: 16))
-                                        .fontWeight(.semibold)
-                                        .foregroundColor(.white)
-                                        .padding(.horizontal, 20)
-                                        .padding(.vertical, 12)
-                                        .background(Color.green)
-                                        .cornerRadius(25)
+                                    HStack(spacing: 10) {
+                                        Text("Next Card")
+                                            .font(.custom("Kefa", size: 16))
+                                            .fontWeight(.semibold)
+                                        Image(systemName: "arrow.right.circle.fill")
+                                            .font(.system(size: 18, weight: .semibold))
+                                    }
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 25)
+                                    .padding(.vertical, 15)
+                                    .background(
+                                        LinearGradient(
+                                            colors: [Color.green, Color.green.opacity(0.8)],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    .cornerRadius(25)
+                                    .shadow(color: Color.green.opacity(0.4), radius: 10, x: 0, y: 5)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 25)
+                                            .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                                    )
                                 }
                             }
+                            .padding(.horizontal, 30)
+                            .padding(.bottom, 40)
                         }
                         .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
                     }
                 }
-                .transition(.opacity)
+                .transition(.opacity.combined(with: .scale(scale: 0.9)))
                 .zIndex(4000)
             }
         }
@@ -316,13 +448,13 @@ struct CardSelectionView: View {
             // Start animation
             animatingCard = index
             
-            // Add the card reveal with smooth animation
-            withAnimation(.easeInOut(duration: 1.0)) {
+            // Add the card reveal with faster animation
+            withAnimation(.easeInOut(duration: 0.4)) {
                 revealedCards.insert(index)
             }
             
-            // Show detail view after animation completes
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            // Show detail view after animation completes - much faster
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
                 animatingCard = nil
                 showingCardDetail = index
                 showingCardDescription = false // Reset to show card front
@@ -333,14 +465,16 @@ struct CardSelectionView: View {
     private func continueToNextCard(currentIndex: Int) {
         // Auto-select the current card
         if selectedCards.count < maxSelections {
-            withAnimation(.easeInOut(duration: 0.3)) {
+            withAnimation(.easeInOut(duration: 0.25)) {
                 selectedCards.insert(currentIndex)
             }
         }
         
         // Close detail view
-        showingCardDetail = nil
-        showingCardDescription = false
+        withAnimation(.easeInOut(duration: 0.25)) {
+            showingCardDetail = nil
+            showingCardDescription = false
+        }
     }
     
     private func saveCurrentTeamCards() {
@@ -360,7 +494,7 @@ struct CardSelectionView: View {
         
         if !isFirstTeamDone {
             // Switch to the other team
-            withAnimation(.easeInOut(duration: 0.5)) {
+            withAnimation(.easeInOut(duration: 0.4)) {
                 currentTeam = currentTeam == team1Name ? team2Name : team1Name
                 isFirstTeamDone = true
                 selectedCards.removeAll()

@@ -32,6 +32,3 @@ struct ImageButtonStyle: ButtonStyle {
     }
 }
 
-#Preview {
-    ContentView()
-}

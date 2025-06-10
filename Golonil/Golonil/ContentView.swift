@@ -6,28 +6,39 @@ struct ContentView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                VStack(spacing: -70) {
-                    Text("Golonil")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                        .foregroundColor(.black)
-                        .padding(.bottom, 40)
+                VStack(spacing: 50) {
+                    Image("golonil")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(height: 140)
+                        .offset(y: -20)
                     
-
-                    Button("New Game") {
+                    Button(action: {
                         showTeamSetup = true
+                    }) {
+                        Image("new-button-newgame")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(height: 70)
                     }
-                    .buttonStyle(ImageButtonStyle(imageName: "button-fancy"))
+                    .buttonStyle(PlainButtonStyle())
                     
-                    Button("Tutorials") {
-                        // TODO: Add navigation to tutorial screen
+                    Button(action: {
+                    }) {
+                        Image("new-button-tutorials")                             .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(height: 70)
                     }
-                    .buttonStyle(ImageButtonStyle(imageName: "button-basic"))
-
-                    Button("Options") {
-                        // TODO: Add navigation to options screen
+                    .buttonStyle(PlainButtonStyle())
+                    
+                    Button(action: {
+                    }) {
+                        Image("new-button-options")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(height: 70)
                     }
-                    .buttonStyle(ImageButtonStyle(imageName: "button-basic"))
+                    .buttonStyle(PlainButtonStyle())
                 }
             }
             .fullScreenCover(isPresented: $showTeamSetup) {

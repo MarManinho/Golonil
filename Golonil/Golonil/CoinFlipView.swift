@@ -93,10 +93,14 @@ struct CoinFlipView: View {
 
                 // Continue Button (after flip)
                 if flippedTeam != nil {
-                    Button("Continue") {
-                        showCardSelection = true
-                    }
-                    .buttonStyle(ImageButtonStyle(imageName: "button-basic"))
+                    Button(action: {
+                            showCardSelection = true
+                        }) {
+                            Image("continueButton") // Name of your Figma-exported image with "Continue" text
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 200, height: 80) // Adjust based on your image size/design
+                        }
                     .padding(.bottom, 30)
                 }
 

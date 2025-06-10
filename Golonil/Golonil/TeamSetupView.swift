@@ -90,10 +90,14 @@ struct TeamSetupView: View {
                     Spacer()
 
                     // Start button
-                    Button("Start") {
+                    Button(action: {
                         showNextScreen = true
+                    }) {
+                        Image("startButton")
+                            .resizable()
+                            .scaledToFit() // or .scaledToFill() depending on design
+                            .frame(width: 200, height: 80) // adjust to match your button image size
                     }
-                    .buttonStyle(ImageButtonStyle(imageName: "button-basic"))
                     .padding(.bottom, 30)
                     .disabled(team1Name.isEmpty || team2Name.isEmpty || team1Color == nil || team2Color == nil)
                     .opacity((team1Name.isEmpty || team2Name.isEmpty || team1Color == nil || team2Color == nil) ? 0.5 : 1.0)

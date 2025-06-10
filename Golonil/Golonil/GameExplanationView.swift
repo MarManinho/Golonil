@@ -91,33 +91,10 @@ struct GameExplanationView: View {
                 Button(action: {
                     showingGamePlay = true
                 }) {
-                    ZStack {
-                        // Button background with decorative elements
-                        HStack {
-                            Image(systemName: "diamond.fill")
-                                .foregroundColor(.orange)
-                                .font(.title2)
-                            
-                            Text("Next")
-                                .font(.custom("Kefa", size: 24))
-                                .fontWeight(.bold)
-.foregroundColor(.black)
-                                .padding(.horizontal, 30)
-                                .padding(.vertical, 15)
-                            
-                            Image(systemName: "diamond.fill")
-                                .foregroundColor(.orange)
-                                .font(.title2)
-                        }
-                        .background(
-                            RoundedRectangle(cornerRadius: 40)
-                                .fill(Color.orange.opacity(0.8))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 40)
-                                        .stroke(Color.orange.darker(), lineWidth: 3)
-                                )
-                        )
-                    }
+                    Image("nextButton")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 220, height: 80)
                 }
                 .padding(.bottom, 50)
             }
@@ -261,6 +238,16 @@ HStack {
                         }
                     }
                     .padding(.horizontal, 30)
+                    .padding(.vertical, 20)
+                    .background(
+                        RoundedRectangle(cornerRadius: 20)
+                            .fill(Color.white.opacity(0.8))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 20)
+                                    .stroke(Color.black.opacity(0.2), lineWidth: 1)
+                            )
+                    )
+                    .padding(.horizontal, 20)
                 }
                 .padding(.bottom, 30)
                 
@@ -334,7 +321,7 @@ Text("Team \(ballTeam)")
                                     .foregroundColor(.white)
                                     .font(.title2)
                                 
-                                Text("View Your Cards (\(currentGuessingTeamCards.wrappedValue.count))")
+                                Text("View  Cards (\(currentGuessingTeamCards.wrappedValue.count))")
                                     .font(.custom("Kefa", size: 20))
                                     .fontWeight(.bold)
                                     .foregroundColor(.white)
@@ -366,35 +353,14 @@ Text("Team \(ballTeam)")
                     Button(action: {
                         finishRound()
                     }) {
-                        ZStack {
-                            HStack {
-                                Image(systemName: "flag.fill")
-                                    .foregroundColor(.red)
-                                    .font(.title2)
-                                
-                                Text("Finish Round")
-                                    .font(.custom("Kefa", size: 24))
-                                    .fontWeight(.bold)
-                                    .foregroundColor(.white)
-                                    .padding(.horizontal, 30)
-                                    .padding(.vertical, 15)
-                                
-                                Image(systemName: "flag.fill")
-.foregroundColor(.red)
-                                    .font(.title2)
-                            }
-                            .background(
-                                RoundedRectangle(cornerRadius: 40)
-                                    .fill(Color.red.opacity(0.8))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 40)
-                                            .stroke(Color.red.darker(), lineWidth: 3)
-                                    )
-                            )
-                        }
+                        Image("finishRound")  
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 280, height: 90)  // adjust size as needed
                     }
                     .padding(.bottom, 50)
                 }
+
             }
         }
         .onDisappear {
@@ -532,7 +498,7 @@ Text("Team \(ballTeam)")
     }
 }
 
-// New view to display and manage team cards
+// Enhanced TeamCardsView with better card display
 struct TeamCardsView: View {
     let teamName: String
     let teamColor: Color
@@ -540,7 +506,7 @@ struct TeamCardsView: View {
     @Environment(\.dismiss) var dismiss
     @State private var selectedCard: String? = nil
     @State private var showingCardDetail = false
-    @State private var showingCardDescription = false
+    @State private var showingConfirmation = false
     
     // Card descriptions mapping
     private let cardDescriptions: [String: String] = [
@@ -549,6 +515,14 @@ struct TeamCardsView: View {
         "card3": "The Guessing team can guess the hand with Goal. If they fail, the game continues.",
         "card4": "Guessing team can ask one question from the other team. The player who is questioned should tell the truth.",
         "card5": "By correctly emptying one hand, the Master of the opposing team is required to empty another hand of the team."
+    ]
+    
+    private let cardTitles: [String: String] = [
+        "card1": "Duel Card",
+        "card2": "Empty Replay Card",
+        "card3": "Goal Guess Card",
+        "card4": "Truth Question Card",
+        "card5": "Master Control Card"
     ]
     
     var body: some View {
@@ -562,196 +536,373 @@ struct TeamCardsView: View {
                 // Header
                 HStack {
                     Button(action: { dismiss() }) {
-                        Image(systemName: "chevron.left")
-                            .font(.title2)
-                            .padding()
+                        HStack(spacing: 8) {
+                            Image(systemName: "chevron.left")
+                                .font(.title3)
+                            Text("Back")
+                                .font(.custom("Kefa", size: 16))
+                        }
+                        .foregroundColor(.black)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 20)
+                                .fill(Color.white.opacity(0.8))
+                        )
+                    }
+                    
+                    Spacer()
+                    
+                    VStack(spacing: 2) {
+                        Text("Team \(teamName)")
+                            .font(.custom("Kefa", size: 24))
+                            .fontWeight(.bold)
+                            .foregroundColor(teamColor)
+                        Text("Special Cards")
+                            .font(.custom("Kefa", size: 16))
                             .foregroundColor(.black)
                     }
+                    
                     Spacer()
-                    Text("Team \(teamName) Cards")
-                        .font(.custom("Kefa", size: 24))
-                        .fontWeight(.bold)
-                        .foregroundColor(teamColor)
-                    Spacer()
-                    // Invisible spacer for balance
-                    Image(systemName: "chevron.left")
-                        .font(.title2)
-                        .padding()
-                        .opacity(0)
+                    
+                    // Card count badge
+                    HStack(spacing: 4) {
+                        Image(systemName: "rectangle.stack.fill")
+                            .font(.caption)
+                        Text("\(cards.count)")
+                            .font(.custom("Kefa", size: 14))
+                            .fontWeight(.bold)
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(
+                        RoundedRectangle(cornerRadius: 15)
+                            .fill(teamColor)
+                    )
                 }
+                .padding(.horizontal)
                 .padding(.top)
                 
                 if cards.isEmpty {
-                    // No cards remaining
-                    VStack(spacing: 20) {
-                        Image(systemName: "rectangle.stack.badge.minus")
-                            .font(.system(size: 80))
-                            .foregroundColor(.gray)
+                    // No cards remaining - enhanced empty state
+                    VStack(spacing: 30) {
+                        Spacer()
                         
-                        Text("No Cards Remaining")
-                            .font(.custom("Kefa", size: 28))
-                            .fontWeight(.bold)
-                            .foregroundColor(.gray)
+                        ZStack {
+                            Circle()
+                                .fill(Color.gray.opacity(0.1))
+                                .frame(width: 120, height: 120)
+                            
+                            Image(systemName: "rectangle.stack.badge.minus")
+                                .font(.system(size: 50))
+                                .foregroundColor(.gray)
+                        }
                         
-                        Text("You have used all your cards for this game.")
-                            .font(.custom("Kefa", size: 18))
-                            .foregroundColor(.gray)
-                            .multilineTextAlignment(.center)
+                        VStack(spacing: 10) {
+                            Text("No Cards Left")
+                                .font(.custom("Kefa", size: 28))
+                                .fontWeight(.bold)
+                                .foregroundColor(.gray)
+                            
+                            Text("You've used all your special cards.\nReady to play strategically!")
+                                .font(.custom("Kefa", size: 16))
+                                .foregroundColor(.gray.opacity(0.8))
+                                .multilineTextAlignment(.center)
+                                .lineSpacing(4)
+                        }
+                        
+                        Spacer()
+                        
+                        Button(action: { dismiss() }) {
+                            Text("Continue Game")
+                                .font(.custom("Kefa", size: 18))
+                                .fontWeight(.bold)
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 30)
+                                .padding(.vertical, 12)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 25)
+                                        .fill(teamColor)
+                                )
+                        }
+                        .padding(.bottom, 30)
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    // Display cards
-                    Text("Tap a card to use it")
-                        .font(.custom("Kefa", size: 18))
-                        .foregroundColor(.black)
-                        .padding(.bottom, 10)
-                    
-                    ScrollView {
-                        LazyVGrid(columns: [
-                            GridItem(.flexible(), spacing: 20),
-                            GridItem(.flexible(), spacing: 20)
-                        ], spacing: 30) {
-ForEach(cards, id: \.self) { cardName in
-                                Button(action: {
-                                    selectedCard = cardName
-                                    showingCardDetail = true
-                                    showingCardDescription = false
-                                }) {
-                                    VStack(spacing: 10) {
-                                        Image(cardName)
-                                            .resizable()
-                                            .aspectRatio(contentMode: .fit)
-                                            .frame(width: 120, height: 180)
-                                            .cornerRadius(12)
-                                            .shadow(color: .black.opacity(0.3), radius: 5, x: 0, y: 3)
-                                        
-                                        Text("Tap to Use")
-                                            .font(.custom("Kefa", size: 14))
-                                            .fontWeight(.semibold)
-                                            .foregroundColor(teamColor)
+                    // Display cards with enhanced grid
+                    VStack(spacing: 16) {
+                        Text("Tap any card to view details and use it")
+                            .font(.custom("Kefa", size: 16))
+                            .foregroundColor(.black.opacity(0.7))
+                            .padding(.horizontal)
+                        
+                        ScrollView {
+                            LazyVGrid(columns: [
+                                GridItem(.flexible(), spacing: 16),
+                                GridItem(.flexible(), spacing: 16)
+                            ], spacing: 24) {
+                                ForEach(cards, id: \.self) { cardName in
+                                    CardTileView(
+                                        cardName: cardName,
+                                        cardTitle: cardTitles[cardName] ?? "Special Card",
+                                        teamColor: teamColor
+                                    ) {
+                                        selectedCard = cardName
+                                        showingCardDetail = true
                                     }
                                 }
                             }
+                            .padding(.horizontal, 20)
+                            .padding(.bottom, 20)
                         }
-                        .padding(.horizontal, 20)
                     }
                 }
                 
                 Spacer()
             }
             
-            // Card detail overlay
+            // Enhanced card detail modal
             if showingCardDetail, let card = selectedCard {
-                GeometryReader { geometry in
-                    ZStack {
-                        // Semi-transparent background
-                        Color.black.opacity(0.5)
-                            .ignoresSafeArea()
-                            .onTapGesture {
-                                showingCardDetail = false
-                                selectedCard = nil
-                            }
-                        
-                        VStack(spacing: 20) {
-                            // Card display
-                            ZStack {
-                                // Front of card (image)
-                                if !showingCardDescription {
-                                    Image(card)
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fit)
-                                        .frame(width: 180, height: 270)
-                                        .cornerRadius(16)
-                                        .shadow(color: .black.opacity(0.6), radius: 15, x: 0, y: 8)
-                                }
-                                
-                                // Back of card (description)
-                                if showingCardDescription {
-                                    ZStack {
-                                        RoundedRectangle(cornerRadius: 16)
-                                            .fill(Color.white)
-                                            .frame(width: 180, height: 270)
-                                            .shadow(color: .black.opacity(0.6), radius: 15, x: 0, y: 8)
-                                        
-                                        VStack(spacing: 10) {
-                                            Text("Card Effect")
-                                                .font(.custom("Kefa", size: 18))
-                                                .fontWeight(.bold)
-                                                .foregroundColor(.black)
-                                            
-                                            ScrollView {
-                                                Text(cardDescriptions[card] ?? "No description available")
-                                                    .font(.custom("Kefa", size: 14))
-                                                    .foregroundColor(.black)
-                                                    .multilineTextAlignment(.center)
-                                                    .padding()
-                                            }
-}
-                                        .frame(width: 160, height: 250)
-                                    }
-                                }
-                            }
-                            .rotation3DEffect(
-                                .degrees(showingCardDescription ? 180 : 0),
-                                axis: (x: 0, y: 1, z: 0)
-                            )
-                            .animation(.easeInOut(duration: 0.8), value: showingCardDescription)
-                            
-                            // Action buttons
-                            HStack(spacing: 20) {
-                                // Learn About Card button
-                                Button(action: {
-                                    withAnimation(.easeInOut(duration: 0.8)) {
-                                        showingCardDescription.toggle()
-                                    }
-                                }) {
-                                    Text(showingCardDescription ? "Show Card" : "Learn About Card")
-                                        .font(.custom("Kefa", size: 16))
-                                        .fontWeight(.semibold)
-                                        .foregroundColor(.white)
-                                        .padding(.horizontal, 20)
-                                        .padding(.vertical, 12)
-                                        .background(Color.blue)
-                                        .cornerRadius(25)
-                                }
-                                
-                                // Use Card button
-                                Button(action: {
-                                    useCard(card)
-                                }) {
-                                    Text("Use This Card")
-                                        .font(.custom("Kefa", size: 16))
-                                        .fontWeight(.semibold)
-                                        .foregroundColor(.white)
-                                        .padding(.horizontal, 20)
-                                        .padding(.vertical, 12)
-                                        .background(teamColor)
-                                        .cornerRadius(25)
-                                }
-                            }
+                CardDetailModalView(
+                    cardName: card,
+                    cardTitle: cardTitles[card] ?? "Special Card",
+                    cardDescription: cardDescriptions[card] ?? "No description available",
+                    teamColor: teamColor,
+                    onDismiss: {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            showingCardDetail = false
+                            selectedCard = nil
                         }
-                        .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
+                    },
+                    onUseCard: {
+                        useCard(card)
+                        showingCardDetail = false
+                        selectedCard = nil
                     }
-                }
-                .transition(.opacity)
+                )
+                .transition(.opacity.combined(with: .scale(scale: 0.95)))
                 .zIndex(1000)
             }
+                
         }
         .navigationBarHidden(true)
     }
     
     private func useCard(_ cardName: String) {
-        // Remove the card from the team's collection
-        withAnimation(.easeInOut(duration: 0.3)) {
+        withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
             cards.removeAll { $0 == cardName }
         }
         
-        // Close the detail view
-        showingCardDetail = false
-        selectedCard = nil
+        // Add haptic feedback
+        let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+        impactFeedback.impactOccurred()
         
-        // Dismiss the cards view
-        dismiss()
+        // Auto-dismiss if no cards left
+        if cards.isEmpty {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                dismiss()
+            }
+        }
+    }
+}
+
+// Individual card tile component
+struct CardTileView: View {
+    let cardName: String
+    let cardTitle: String
+    let teamColor: Color
+    let onTap: () -> Void
+    
+    @State private var isPressed = false
+    
+    var body: some View {
+        Button(action: onTap) {
+            VStack(spacing: 12) {
+                // Card image with enhanced styling
+                ZStack {
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(Color.white)
+                        .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
+                    
+                    Image(cardName)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 100, height: 150)
+                        .cornerRadius(12)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(teamColor.opacity(0.3), lineWidth: 2)
+                        )
+                }
+                .scaleEffect(isPressed ? 0.95 : 1.0)
+                
+                // Card title
+                VStack(spacing: 4) {
+                    Text(cardTitle)
+                        .font(.custom("Kefa", size: 14))
+                        .fontWeight(.bold)
+                        .foregroundColor(.black)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                    
+                    HStack(spacing: 4) {
+                        Image(systemName: "hand.tap.fill")
+                            .font(.caption2)
+                        Text("Tap to Use")
+                            .font(.custom("Kefa", size: 12))
+                    }
+                    .foregroundColor(teamColor)
+                }
+            }
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(Color.white.opacity(0.9))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(teamColor.opacity(0.4), lineWidth: 1.5)
+                    )
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
+        .onLongPressGesture(minimumDuration: 0, maximumDistance: .infinity, pressing: { pressing in
+            withAnimation(.easeInOut(duration: 0.1)) {
+                isPressed = pressing
+            }
+        }, perform: {})
+    }
+}
+
+// Enhanced card detail modal
+struct CardDetailModalView: View {
+    let cardName: String
+    let cardTitle: String
+    let cardDescription: String
+    let teamColor: Color
+    let onDismiss: () -> Void
+    let onUseCard: () -> Void
+    
+    var body: some View {
+        ZStack {
+            // Background overlay
+            Color.black.opacity(0.6)
+                .ignoresSafeArea()
+                .onTapGesture { onDismiss() }
+            
+            VStack(spacing: 0) {
+                // Header
+                HStack {
+                    Button(action: onDismiss) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title2)
+                            .foregroundColor(.gray)
+                    }
+                    
+                    Spacer()
+                    
+                    Text(cardTitle)
+                        .font(.custom("Kefa", size: 20))
+                        .fontWeight(.bold)
+                        .foregroundColor(.black)
+                    
+                    Spacer()
+                    
+                    // Invisible spacer for balance
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.title2)
+                        .opacity(0)
+                }
+                .padding(20)
+                .background(
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(Color.white)
+                        .mask(
+                            Rectangle()
+                                .padding(.bottom, -20)
+                        )
+                )
+                
+                // Content
+                VStack(spacing: 24) {
+                    // Large card display
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 20)
+                            .fill(Color.white)
+                            .shadow(color: .black.opacity(0.2), radius: 12, x: 0, y: 6)
+                        
+                        Image(cardName)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 160, height: 240)
+                            .cornerRadius(16)
+                    }
+                    .frame(width: 180, height: 260)
+                    
+                    // Description with better formatting
+                    VStack(spacing: 12) {
+                        HStack {
+                            Image(systemName: "info.circle.fill")
+                                .foregroundColor(teamColor)
+                            Text("Card Effect")
+                                .font(.custom("Kefa", size: 18))
+                                .fontWeight(.bold)
+                                .foregroundColor(.black)
+                            Spacer()
+                        }
+                        
+                        Text(cardDescription)
+                            .font(.custom("Kefa", size: 15))
+                            .foregroundColor(.black.opacity(0.8))
+                            .lineSpacing(6)
+                            .multilineTextAlignment(.leading)
+                            .padding(.horizontal, 8)
+                    }
+                    .padding(16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(teamColor.opacity(0.1))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .stroke(teamColor.opacity(0.3), lineWidth: 1)
+                            )
+                    )
+                    
+                    // Action button
+                    Button(action: onUseCard) {
+                        HStack {
+                            Image(systemName: "play.circle.fill")
+                                .font(.title3)
+                            Text("Use This Card")
+                                .font(.custom("Kefa", size: 18))
+                                .fontWeight(.bold)
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(
+                            RoundedRectangle(cornerRadius: 25)
+                                .fill(teamColor)
+                                .shadow(color: teamColor.opacity(0.4), radius: 8, x: 0, y: 4)
+                        )
+                    }
+                }
+                .padding(24)
+                .background(
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(Color.white)
+                        .mask(
+                            Rectangle()
+                                .padding(.top, -20)
+                        )
+                )
+            }
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(Color.white)
+                    .shadow(color: .black.opacity(0.3), radius: 20, x: 0, y: 10)
+            )
+            .padding(.horizontal, 30)
+        }
     }
 }
 
