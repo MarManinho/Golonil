@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var showTeamSetup = false
+    @State private var showTutorials = false
 
     var body: some View {
         NavigationView {
@@ -24,6 +25,7 @@ struct ContentView: View {
                     .buttonStyle(PlainButtonStyle())
                     
                     Button(action: {
+                        showTutorials = true
                     }) {
                         Image("new-button-tutorials")                             .resizable()
                             .aspectRatio(contentMode: .fit)
@@ -43,6 +45,9 @@ struct ContentView: View {
             }
             .fullScreenCover(isPresented: $showTeamSetup) {
                 TeamSetupView()
+            }
+            .fullScreenCover(isPresented: $showTutorials) {
+                TutorialsView()
             }
             .tiledBackground()
         }

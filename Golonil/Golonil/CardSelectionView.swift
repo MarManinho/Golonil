@@ -15,15 +15,15 @@ struct CardSelectionView: View {
     @State private var showingGameExplanation = false
 
     @Environment(\.dismiss) var dismiss
-    @State private var selectedCards: Set<Int> = []
+    @State private var selectedCards: [String] = [] // Changed to array to maintain order
+    @State private var selectedCardIndices: [Int] = [] // Track selected card indices for descriptions
+    @State private var availableCardIndices: [Int] = [] // Track available cards
     @State private var shuffledCardImages: [String] = []
-    @State private var revealedCards: Set<Int> = [] // Track which cards are revealed
-    @State private var animatingCard: Int? = nil // Track which card is currently animating
     @State private var showingCardDetail: Int? = nil // Track which card is showing in detail view
-    
-    // States for the modified flow
-    @State private var allCardsRevealed: Bool = false
-    @State private var autoRevealInProgress: Bool = false
+    @State private var animatingCardToSelection: String? = nil // Track card transitioning to selection
+    @State private var allCardsRevealed: Bool = false // Track if we should show revealed cards view
+    @State private var showingCardsChosen = false // Control CardsChosenView presentation
+    @State private var centerCardIndex: Int = 0 // Track which card is in the center
     
     // Your 9 card images and descriptions - replace these with your actual image names and descriptions
     private let cardImageNames = [
@@ -31,7 +31,18 @@ struct CardSelectionView: View {
         "card6", "card7", "card8", "card9"
     ]
     
-    // Card descriptions - you'll provide these
+    // Card real names mapping
+    private let cardRealNames: [String: String] = [
+        "card1": "Duel",
+        "card2": "Empty Replay",
+        "card3": "Empty Replay",
+        "card4": "Nothing to Lose",
+        "card5": "Nothing to Lose",
+        "card6": "The Spy",
+        "card7": "The Spy",
+        "card8": "Two Birds, One Stone",
+        "card9": "Two Birds, One Stone"
+    ]
     private let cardDescriptions = [
         "A One vs One Duel will be done between one member of each team. The winner will get the ball for the next round.",
         "The Guessing team can use 3 more Empty Replays on the other team with this card.",
@@ -99,12 +110,12 @@ struct CardSelectionView: View {
                             .fontWeight(.bold)
                             .foregroundColor(.black)
 
-                        Text("Tap on each card to reveal it.\nChoose \(maxSelections) cards you want.")
+                        Text("Tap on each card to reveal and select it.\nChoose \(maxSelections) cards you want.")
                             .font(.custom("Kefa", size: 18))
                             .multilineTextAlignment(.center)
                             .foregroundColor(.black)
 
-                        Text("Revealed: \(revealedCards.count)/\(maxSelections)")
+                        Text("Selected: \(selectedCards.count)/\(maxSelections)")
                             .font(.custom("Kefa", size: 16))
                             .fontWeight(.semibold)
                             .foregroundColor(.black)
@@ -123,25 +134,27 @@ struct CardSelectionView: View {
                 .padding(.bottom, 10)
 
                 if !allCardsRevealed {
-                    // Original circular scroll view for card selection
+                    // Circular scroll view for card selection - only show available cards
                     GeometryReader { outerProxy in
                         ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 10) {
-                                ForEach(0..<totalCards, id: \.self) { index in
+                            HStack(spacing: 5) { // Reduced spacing from 10 to 5
+                                ForEach(availableCardIndices, id: \.self) { index in
                                     GeometryReader { innerProxy in
                                         let midX = innerProxy.frame(in: .global).midX
                                         let screenMidX = outerProxy.size.width / 2
+                                        let distanceFromCenter = abs(midX - screenMidX)
                                         let rotation = (midX - screenMidX) / -20
-                                        let scale = max(0.8, 1.0 - abs(midX - screenMidX) / 500)
+                                        
+                                        // Enhanced scaling: center card is bigger, side cards are smaller
+                                        let maxScale: CGFloat = 1.2 // Center card scale
+                                        let minScale: CGFloat = 0.75 // Side cards scale
+                                        let scaleRange = maxScale - minScale
+                                        let normalizedDistance = min(distanceFromCenter / 200, 1.0) // Adjust 200 to control transition distance
+                                        let scale = maxScale - (scaleRange * normalizedDistance)
                                         
                                         CardView(
                                             cardIndex: index,
-                                            imageName: revealedCards.contains(index) ?
-                                                      (shuffledCardImages.indices.contains(index) ? shuffledCardImages[index] : "card-template") :
-                                                      "card-template",
-                                            isRevealed: revealedCards.contains(index),
-                                            isSelected: selectedCards.contains(index),
-                                            isAnimating: animatingCard == index,
+                                            imageName: "card-template", // Always show template for unrevealed cards
                                             onTap: {
                                                 handleCardTap(index: index)
                                             }
@@ -151,7 +164,6 @@ struct CardSelectionView: View {
                                             axis: (x: 0, y: 1, z: 0)
                                         )
                                         .scaleEffect(scale)
-                                        .opacity(animatingCard == index ? 0.2 : 1.0)
                                     }
                                     .frame(width: 150, height: 220)
                                 }
@@ -161,39 +173,42 @@ struct CardSelectionView: View {
                     }
                     .frame(height: 260)
                 } else {
-                    // Show only revealed cards with descriptions
+                    // Show only revealed cards with descriptions below
                     revealedCardsView()
                 }
 
+                                
                 Spacer()
                 
-                if !allCardsRevealed {
-                    // Selected cards display at bottom during selection phase
-                    if !selectedCards.isEmpty {
-                        VStack {
-                            Text("Your Selected Cards")
-                                .font(.custom("Kefa", size: 18))
-                                .fontWeight(.bold)
-                                .foregroundColor(.black)
-                            
-                            HStack {
-                                ForEach(Array(selectedCards).sorted(), id: \.self) { cardIndex in
-                                    Image(shuffledCardImages.indices.contains(cardIndex) ? shuffledCardImages[cardIndex] : "card-template")
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fit)
-                                        .frame(width: 50, height: 75)
-                                        .cornerRadius(8)
-                                        .transition(.scale.combined(with: .opacity))
-                                }
+                // Selected cards display at bottom (only during selection phase)
+                if !selectedCards.isEmpty && !allCardsRevealed {
+                    VStack(spacing: 12) {
+                        Text("Your Selected Cards")
+                            .font(.custom("Kefa", size: 18))
+                            .fontWeight(.bold)
+                            .foregroundColor(.black)
+                        
+                        HStack(spacing: 8) {
+                            ForEach(selectedCards, id: \.self) { cardName in
+                                Image(cardName)
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
+                                    .frame(width: 50, height: 75)
+                                    .cornerRadius(8)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .stroke(currentTeam == team1Name ? team1Color : team2Color, lineWidth: 2)
+                                    )
+                                    .scaleEffect(animatingCardToSelection == cardName ? 0.8 : 1.0)
+                                    .animation(.easeInOut(duration: 0.3), value: animatingCardToSelection == cardName)
                             }
-                            .animation(.easeInOut(duration: 0.3), value: selectedCards)
                         }
-                        .padding(.bottom, 20)
                     }
+                    .padding(.bottom, 20)
                 }
                 
-                // Continue button (appears when 5 cards are revealed)
-                if revealedCards.count == maxSelections {
+                // Continue button (appears when 5 cards are selected)
+                if selectedCards.count == maxSelections {
                     Button(action: {
                         handleContinue()
                     }) {
@@ -204,68 +219,94 @@ struct CardSelectionView: View {
                     }
                     .padding(.bottom, 20)
                     .transition(.scale.combined(with: .opacity))
-                    .animation(.easeInOut(duration: 0.3), value: revealedCards.count == maxSelections)
+                    .animation(.easeInOut(duration: 0.3), value: selectedCards.count == maxSelections)
                 }
             }
             
-            // Full-screen overlay for card detail view (simplified - just show card briefly)
+            // Full-screen overlay for card detail view
             if let detailIndex = showingCardDetail {
                 GeometryReader { geometry in
                     ZStack {
-                        // Subtle background
-                        Color.black.opacity(0.5)
+                        // Background
+                        Color.black.opacity(0.7)
                             .ignoresSafeArea()
+                            .onTapGesture {
+                                // Prevent dismissing by tap, let animation complete
+                            }
                         
-                        VStack(spacing: 15) {
-                            // Card display
+                        VStack(spacing: 20) {
+                            // Large card display with glow effect
                             ZStack {
                                 // Glow effect background
-                                RoundedRectangle(cornerRadius: 20)
+                                RoundedRectangle(cornerRadius: 24)
                                     .fill(
-                                        LinearGradient(
+                                        RadialGradient(
                                             colors: [
-                                                (currentTeam == team1Name ? team1Color : team2Color).opacity(0.3),
-                                                (currentTeam == team1Name ? team1Color : team2Color).opacity(0.1)
+                                                (currentTeam == team1Name ? team1Color : team2Color).opacity(0.4),
+                                                (currentTeam == team1Name ? team1Color : team2Color).opacity(0.1),
+                                                Color.clear
                                             ],
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
+                                            center: .center,
+                                            startRadius: 50,
+                                            endRadius: 150
                                         )
                                     )
-                                    .frame(width: 220, height: 320)
-                                    .blur(radius: 10)
+                                    .frame(width: 280, height: 400)
                                 
-                                // Main card
+                                // Main card with revealed image
                                 Image(shuffledCardImages.indices.contains(detailIndex) ? shuffledCardImages[detailIndex] : "card-template")
                                     .resizable()
                                     .aspectRatio(contentMode: .fit)
-                                    .frame(width: 200, height: 300)
+                                    .frame(width: 240, height: 360)
                                     .cornerRadius(20)
-                                    .shadow(color: .black.opacity(0.8), radius: 20, x: 0, y: 10)
+                                    .shadow(color: .black.opacity(0.6), radius: 20, x: 0, y: 10)
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 20)
                                             .stroke(
                                                 LinearGradient(
-                                                    colors: [Color.white.opacity(0.3), Color.clear],
+                                                    colors: [
+                                                        Color.white.opacity(0.4),
+                                                        (currentTeam == team1Name ? team1Color : team2Color).opacity(0.6),
+                                                        Color.white.opacity(0.4)
+                                                    ],
                                                     startPoint: .topLeading,
                                                     endPoint: .bottomTrailing
                                                 ),
-                                                lineWidth: 2
+                                                lineWidth: 3
                                             )
                                     )
                             }
                             
-                            // Card title
-                            Text("Power Card #\(detailIndex + 1)")
-                                .font(.custom("Kefa", size: 24))
-                                .fontWeight(.bold)
-                                .foregroundColor(.white)
-                                .shadow(color: .black.opacity(0.5), radius: 2, x: 0, y: 1)
+                            // Card title with enhanced styling
+                            VStack(spacing: 8) {
+                                Text(shuffledCardImages.indices.contains(detailIndex) ?
+                                     (cardRealNames[shuffledCardImages[detailIndex]] ?? "Unknown Card") :
+                                     "Unknown Card")
+                                    .font(.custom("Kefa", size: 28))
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.white)
+                                    .shadow(color: .black.opacity(0.8), radius: 4, x: 0, y: 2)
+                                
+                                Text("Selected!")
+                                    .font(.custom("Kefa", size: 18))
+                                    .fontWeight(.semibold)
+                                    .foregroundColor((currentTeam == team1Name ? team1Color : team2Color))
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 6)
+                                    .background(
+                                        Capsule()
+                                            .fill(Color.white.opacity(0.9))
+                                    )
+                            }
                         }
                         .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
+                        .scaleEffect(showingCardDetail != nil ? 1.0 : 0.3)
+                        .opacity(showingCardDetail != nil ? 1.0 : 0.0)
+                        .animation(.easeInOut(duration: 0.5), value: showingCardDetail != nil)
                     }
                 }
-                .transition(.opacity.combined(with: .scale(scale: 0.9)))
-                .zIndex(4000)
+                .transition(.opacity)
+                .zIndex(1000)
             }
         }
         .navigationBarHidden(true)
@@ -286,124 +327,65 @@ struct CardSelectionView: View {
         }
     }
     
-    // Show only revealed cards with descriptions below
-    private func revealedCardsView() -> some View {
-        let revealedCardIndices = Array(revealedCards).sorted()
-        
-        return ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 20) {
-                ForEach(revealedCardIndices, id: \.self) { cardIndex in
-                    VStack(spacing: 15) {
-                        // Card image
-                        Image(shuffledCardImages.indices.contains(cardIndex) ? shuffledCardImages[cardIndex] : "card-template")
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 140, height: 200)
-                            .cornerRadius(15)
-                            .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 15)
-                                    .stroke(
-                                        LinearGradient(
-                                            colors: [
-                                                (currentTeam == team1Name ? team1Color : team2Color),
-                                                (currentTeam == team1Name ? team1Color : team2Color).opacity(0.6)
-                                            ],
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        ),
-                                        lineWidth: 3
-                                    )
-                            )
-                        
-                        // Card description
-                        VStack(spacing: 8) {
-                            Text("Power Card #\(cardIndex + 1)")
-                                .font(.custom("Kefa", size: 16))
-                                .fontWeight(.bold)
-                                .foregroundColor(currentTeam == team1Name ? team1Color : team2Color)
-                            
-                            Text(cardDescriptions.indices.contains(cardIndex) ? cardDescriptions[cardIndex] : "No description available")
-                                .font(.custom("Kefa", size: 12))
-                                .multilineTextAlignment(.center)
-                                .foregroundColor(.black)
-                                .lineSpacing(2)
-                                .frame(width: 140)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                    .frame(width: 160)
-                }
-            }
-            .padding(.horizontal, 20)
-        }
-        .frame(height: 350)
-    }
-    
     private func setupRandomCards() {
         // Shuffle the card images randomly
         shuffledCardImages = cardImageNames.shuffled()
+        // Initialize available card indices (0 to 8)
+        availableCardIndices = Array(0..<totalCards)
     }
     
     private func handleCardTap(index: Int) {
-        // Prevent interaction during auto-reveal
-        if autoRevealInProgress {
+        // Check if we've already selected max cards
+        if selectedCards.count >= maxSelections {
             return
         }
         
-        // If card is not revealed yet, reveal it
-        if !revealedCards.contains(index) {
-            // Check if we've already revealed 5 cards
-            if revealedCards.count >= maxSelections {
-                return
-            }
-            
-            autoRevealInProgress = true
-            
-            // Start animation
-            animatingCard = index
-            
-            // Add the card reveal and auto-select
-            withAnimation(.easeInOut(duration: 0.4)) {
-                revealedCards.insert(index)
-                selectedCards.insert(index)
-            }
-            
-            // Show detail view briefly
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                animatingCard = nil
-                showingCardDetail = index
+        // Get the actual card name from shuffled array
+        let selectedCardName = shuffledCardImages.indices.contains(index) ? shuffledCardImages[index] : "card-template"
+        
+        // Start fade in animation (0.5 seconds)
+        withAnimation(.easeInOut(duration: 0.5)) {
+            showingCardDetail = index
+        }
+        
+        // After 0.5 seconds, start fade out and move to selection
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            withAnimation(.easeInOut(duration: 0.5)) {
+                // Hide detail view (fade out)
+                showingCardDetail = nil
                 
-                // Show card for 1 second, then close
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        showingCardDetail = nil
-                        autoRevealInProgress = false
-                        
-                        // Check if all cards are revealed
-                        if revealedCards.count == maxSelections {
-                            // Switch to revealed cards view
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                                withAnimation(.easeInOut(duration: 0.5)) {
-                                    allCardsRevealed = true
-                                }
-                            }
+                // Add to selected cards
+                selectedCards.append(selectedCardName)
+                selectedCardIndices.append(index) // Track index for descriptions
+                
+                // Set animation state for the new card
+                animatingCardToSelection = selectedCardName
+                
+                // Remove from available cards
+                availableCardIndices.removeAll { $0 == index }
+                
+                // Check if all cards are selected
+                if selectedCards.count == maxSelections {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        withAnimation(.easeInOut(duration: 0.5)) {
+                            allCardsRevealed = true
                         }
                     }
                 }
+            }
+            
+            // Reset animation state
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                animatingCardToSelection = nil
             }
         }
     }
     
     private func saveCurrentTeamCards() {
-        let selectedCardNames = Array(selectedCards).sorted().compactMap { index in
-            shuffledCardImages.indices.contains(index) ? shuffledCardImages[index] : nil
-        }
-        
         if currentTeam == team1Name {
-            team1Cards = selectedCardNames
+            team1Cards = selectedCards
         } else {
-            team2Cards = selectedCardNames
+            team2Cards = selectedCards
         }
     }
     
@@ -416,13 +398,12 @@ struct CardSelectionView: View {
                 currentTeam = currentTeam == team1Name ? team2Name : team1Name
                 isFirstTeamDone = true
                 selectedCards.removeAll()
-                revealedCards.removeAll()
-                animatingCard = nil
+                selectedCardIndices.removeAll()
                 showingCardDetail = nil
+                animatingCardToSelection = nil
                 allCardsRevealed = false
-                autoRevealInProgress = false
                 
-                // Reshuffle cards for the second team
+                // Reset available cards for the second team and reshuffle
                 setupRandomCards()
             }
         } else {
@@ -430,62 +411,149 @@ struct CardSelectionView: View {
             showingGameExplanation = true
         }
     }
+    
+    // Show only revealed cards with descriptions below
+    // Show only revealed cards with descriptions below
+        private func revealedCardsView() -> some View {
+            VStack(spacing: 20) {
+                // Cards scroll view without text
+                GeometryReader { outerProxy in
+                    ScrollViewReader { scrollProxy in
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 5) {
+                                ForEach(Array(selectedCardIndices.enumerated()), id: \.offset) { enumeration in
+                                    let (arrayIndex, cardIndex) = enumeration
+                                    GeometryReader { innerProxy in
+                                        let midX = innerProxy.frame(in: .global).midX
+                                        let screenMidX = outerProxy.size.width / 2
+                                        let distanceFromCenter = abs(midX - screenMidX)
+                                        let rotation = (midX - screenMidX) / -20
+                                        
+                                        // Calculate opacity for description based on distance from center
+                                        let maxDistance: CGFloat = 100
+                                        let opacity = max(0, 1 - (distanceFromCenter / maxDistance))
+                                        
+                                        // Same scaling as selection view
+                                        let maxScale: CGFloat = 1
+                                        let minScale: CGFloat = 0.75
+                                        let scaleRange = maxScale - minScale
+                                        let normalizedDistance = min(distanceFromCenter / 200, 1.0)
+                                        let scale = maxScale - (scaleRange * normalizedDistance)
+                                        
+                                        // Update center card index when close enough to center
+                                        let _ = {
+                                            if distanceFromCenter < 50 {
+                                                DispatchQueue.main.async {
+                                                    if centerCardIndex != arrayIndex {
+                                                        centerCardIndex = arrayIndex
+                                                    }
+                                                }
+                                            }
+                                        }()
+                                        
+                                        // Card image only
+                                        Image(selectedCards.indices.contains(arrayIndex) ? selectedCards[arrayIndex] : "card-template")
+                                            .resizable()
+                                            .aspectRatio(contentMode: .fit)
+                                            .frame(width: 140, height: 200)
+                                            .cornerRadius(15)
+                                            .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 15)
+                                                    .stroke(
+                                                        LinearGradient(
+                                                            colors: [
+                                                                (currentTeam == team1Name ? team1Color : team2Color),
+                                                                (currentTeam == team1Name ? team1Color : team2Color).opacity(0.6)
+                                                            ],
+                                                            startPoint: .topLeading,
+                                                            endPoint: .bottomTrailing
+                                                        ),
+                                                        lineWidth: 3
+                                                    )
+                                            )
+                                            .rotation3DEffect(
+                                                .degrees(Double(rotation)),
+                                                axis: (x: 0, y: 1, z: 0)
+                                            )
+                                            .scaleEffect(scale)
+                                            .id(arrayIndex)
+                                    }
+                                    .frame(width: 150, height: 220)
+                                }
+                            }
+                            .padding(.horizontal, 40)
+                        }
+                    }
+                }
+                .frame(height: 240)
+                
+                // Description rectangle
+                ZStack {
+                    RoundedRectangle(cornerRadius: 25)
+                        .fill(Color.brown.opacity(0.7))
+                        .shadow(color: .black.opacity(0.3), radius: 10, x: 0, y: 5)
+                        .frame(height: 200)
+                    
+                    VStack(spacing: 15) {
+                        // Card name
+                        if selectedCards.indices.contains(centerCardIndex) {
+                            Text(cardRealNames[selectedCards[centerCardIndex]] ?? "Unknown Card")
+                                .font(.custom("Kefa", size: 24))
+                                .fontWeight(.bold)
+                                .foregroundColor(.white)
+                                .multilineTextAlignment(.center)
+                                .transition(.opacity)
+                        }
+                        
+                        // Card description
+                        if selectedCardIndices.indices.contains(centerCardIndex) {
+                            let cardIndex = selectedCardIndices[centerCardIndex]
+                            Text(cardDescriptions.indices.contains(cardIndex) ? cardDescriptions[cardIndex] : "No description available")
+                                .font(.custom("Kefa", size: 16))
+                                .multilineTextAlignment(.center)
+                                .foregroundColor(.white.opacity(0.9))
+                                .lineSpacing(4)
+                                .padding(.horizontal, 20)
+                                .transition(.opacity)
+                        }
+                    }
+                    .padding(.vertical, 20)
+                }
+                .padding(.horizontal, 20)
+            }
+        }
 }
 
 struct CardView: View {
     let cardIndex: Int
     let imageName: String
-    let isRevealed: Bool
-    let isSelected: Bool
-    let isAnimating: Bool
     let onTap: () -> Void
     
     var body: some View {
         ZStack {
-            // Card back/front
+            // Card template
             Image(imageName)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
                 .frame(width: 140, height: 200)
                 .cornerRadius(12)
                 .shadow(color: .black.opacity(0.3), radius: 5, x: 0, y: 3)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(isSelected ? Color.green : Color.clear, lineWidth: 3)
-                )
             
-            // Selection indicator
-            if isSelected && !isAnimating {
-                VStack {
-                    HStack {
-                        Spacer()
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(.green)
-                            .font(.title2)
-                            .background(Color.white)
-                            .clipShape(Circle())
-                    }
-                    Spacer()
-                }
-                .padding(8)
+            // Tap indicator
+            VStack {
+                Spacer()
+                Text("TAP TO REVEAL")
+                    .font(.custom("Kefa", size: 12))
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.black.opacity(0.7))
+                    .cornerRadius(8)
+                    .opacity(0.9)
             }
-            
-            // Tap indicator for unrevealed cards
-            if !isRevealed && !isAnimating {
-                VStack {
-                    Spacer()
-                    Text("TAP TO REVEAL")
-                        .font(.custom("Kefa", size: 12))
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.black.opacity(0.7))
-                        .cornerRadius(8)
-                        .opacity(0.8)
-                }
-                .padding(.bottom, 20)
-            }
+            .padding(.bottom, 20)
         }
         .onTapGesture {
             onTap()
